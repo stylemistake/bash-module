@@ -65,10 +65,8 @@ module_resolve() {
 module_readlink() {
     local path="$(readlink -f ${1} 2>/dev/null)"
     if [[ ! -f ${path} ]]; then
-        path="$(pwd)/$(basename ${1})"
-        if [[ ! -f ${path} ]]; then
-            return 1
-        fi
+        ## TODO: implement alternatives
+        return 1
     fi
     echo "${path}"
 }
@@ -153,4 +151,12 @@ module() {
 }
 
 ## Initialize current file as a module
-module_init ${0}
+if [[ -f ${0} ]]; then
+    module_init "${0}"
+elif [[ -f "$(pwd)/$(basename ${0})" ]]; then
+    ## This one is ugly, but what can I do :(
+    module_init "$(pwd)/$(basename ${0})"
+else
+    module_log "could not determine path to root module: '${0}'"
+    exit 1
+fi
