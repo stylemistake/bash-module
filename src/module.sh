@@ -38,25 +38,26 @@ module_log() {
 ## Usage: module_resolve <module_name>
 module_resolve() {
     local file path
+    ## Search for module in pre-defined paths
     for path in "${module_search_paths[@]}"; do
         path="${module_dirname}/${path}"
-        if [[ -e "${path}/${1}" ]]; then
-            if [[ -d "${path}/${1}" ]]; then
-                ## TODO: check for package.json
-                if [[ -e "${path}/${1}/index.sh" ]]; then
-                    file="${path}/${1}/index.sh"
-                    break
-                fi
-            else
-                file="${path}/${1}"
-                break
-            fi
-        elif [[ -f "${path}/${1}.sh" ]]; then
+        if [[ -f "${path}/${1}.sh" ]]; then
             file="${path}/${1}.sh"
             break
+        elif [[ -f "${path}/${1}" ]]; then
+            file="${path}/${1}"
+            break
+        elif [[ -d "${path}/${1}" ]]; then
+            ## TODO: check for package.json
+            if [[ -f "${path}/${1}/index.sh" ]]; then
+                file="${path}/${1}/index.sh"
+                break
+            fi
         fi
     done
+    ## Fail if module was not found
     [[ -z ${file} ]] && return 1
+    ## Return path to module
     echo "${file}"
 }
 
