@@ -1,11 +1,17 @@
 #!/bin/bash
 
-## Ensure this file is sourced only once
-if [[ -n ${module_name} ]]; then
-    return 0
-fi
+## Ensure this file can only be sourced
+[[ "${FUNCNAME[0]}" != source ]] && exit 1
 
-## Force some bash options
+## Ensure this file is sourced only once
+[[ -n ${module_name} ]] && return 0
+
+
+## --------------------------------------------------------
+##  Configuration
+## --------------------------------------------------------
+
+## Bash options
 shopt -s expand_aliases
 
 ## Paths to search for modules, ordered by priority
@@ -13,6 +19,11 @@ declare -ga module_search_paths=(
     '.'
     'node_modules'
 )
+
+
+## --------------------------------------------------------
+##  Functions
+## --------------------------------------------------------
 
 ## Usage: module_init <path_to_module>
 module_init() {
@@ -143,21 +154,34 @@ module_import() {
 
 ## Public interface to module loader
 module() {
-    local action="${1}"
-    shift
-    case ${action} in
-        'export') module_export "${@}" ;;
-        'import') module_import "${@}" ;;
+    case "${1}" in
+        'export') module_export "${@:2}" ;;
+        'import') module_import "${@:2}" ;;
     esac
 }
 
-## Initialize current file as a module
-if [[ -f ${0} ]]; then
-    module_init "${0}"
-elif [[ -f "$(pwd)/$(basename ${0})" ]]; then
-    ## This one is ugly, but what can I do :(
-    module_init "$(pwd)/$(basename ${0})"
+
+## --------------------------------------------------------
+##  Initialization
+## --------------------------------------------------------
+
+## Determine correct path to the root module
+declare -g module_root_path
+if [[ -n ${OLDPWD} ]]; then
+    module_root_path="${OLDPWD}/${0}"
 else
+    module_root_path="$(pwd -P)/${0}"
+fi
+
+## Initialize root module vars
+declare -g module_root_dirname="$(dirname ${module_root_path})"
+declare -g module_root_filename="$(basename ${module_root_path})"
+
+## Verify root module path
+if [[ ! -f ${module_root_path} ]]; then
     module_log "could not determine path to root module: '${0}'"
     exit 1
 fi
+
+## Initialize root module
+module_init "${module_root_path}"
